@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spending Tracker</title>
+  <script src="https://unpkg.com/vue@3.2.37/dist/vue.global.js"></script>
+  <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    #capture-area {
+      border: 2px solid black;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div id="app" class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md relative">
+    <!-- Language Switcher -->
+    <div class="absolute top-4 right-4 flex items-center">
+      <button @click="toggleLanguage" class="text-xl mr-2">
+        <i class="fas fa-globe"></i>
+      </button>
+      <span>{{ language === 'en' ? 'EN' : 'AR' }}</span>
+    </div>
+
+    <h1 class="text-2xl font-bold mb-4 text-center">{{ t('Spending Tracker') }}</h1>
+    
+    <!-- Form to Add or Modify Spending -->
+    <div class="mb-4">
+      <input v-model="newSpending.description" :placeholder="t('Description')" class="p-2 border border-gray-300 rounded mb-2 w-full">
+      <input v-model="newSpending.amount" type="number" :placeholder="t('Amount')" class="p-2 border border-gray-300 rounded mb-2 w-full">
+      <button @click="addOrUpdateSpending" class="bg-blue-500 text-white px-4 py-2 rounded w-full">{{ editMode ? t('Update') : t('Add') }}</button>
+    </div>
+
+    <!-- Spending List and Dashboard -->
+    <div id="capture-area" class="mb-4">
+      <h2 class="text-xl font-semibold mb-2 text-center">{{ t('Spending List') }}</h2>
+      <ul>
+        <li v-for="(spending, index) in spendings" :key="index" class="flex justify-between items-center bg-gray-100 p-2 rounded mb-2 shadow-sm">
+          <span>{{ spending.description }} - {{ spending.amount }} MAD</span>
+          <div>
+            <button @click="editSpending(index)" class="text-yellow-500 mr-2"><i class="fas fa-edit"></i></button>
+            <button @click="deleteSpending(index)" class="text-red-500"><i class="fas fa-trash-alt"></i></button>
+          </div>
+        </li>
+      </ul>
+
+      <!-- Dashboard -->
+      <div>
+        <h2 class="text-xl font-semibold mb-2 text-center">{{ t('Dashboard') }}</h2>
+        <p class="text-center">{{ t('Total Spending') }}: <span class="font-bold">{{ totalSpending }} MAD</span></p>
+      </div>
+
+      <!-- Current Date -->
+      <div class="text-center mt-2">
+        <p>{{ currentDate }}</p>
+      </div>
+    </div>
+
+    <!-- Button to Download Image -->
+    <button @click="downloadImage" class="bg-green-500 text-white px-4 py-2 rounded w-full mt-4">
+      <i class="fas fa-download"></i> {{ t('Download Image') }}
+    </button>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          newSpending: {
+            description: '',
+            amount: 0
+          },
+          spendings: [],
+          editMode: false,
+          editIndex: -1,
+          currentDate: new Date().toLocaleDateString(),
+          language: 'en',
+          translations: {
+            en: {
+              'Spending Tracker': 'Spending Tracker',
+              'Description': 'Description',
+              'Amount': 'Amount',
+              'Add': 'Add',
+              'Update': 'Update',
+              'Spending List': 'Spending List',
+              'Dashboard': 'Dashboard',
+              'Total Spending': 'Total Spending',
+              'Download Image': 'Download Image'
+            },
+            darija: {
+              'Spending Tracker': 'متابعة المصاريف',
+              'Description': 'الوصف',
+              'Amount': 'المبلغ',
+              'Add': 'إضافة',
+              'Update': 'تحديث',
+              'Spending List': 'قائمة المصاريف',
+              'Dashboard': 'لوحة التحكم',
+              'Total Spending': 'إجمالي المصاريف',
+              'Download Image': 'تحميل الصورة'
+            }
+          }
+        }
+      },
+      computed: {
+        totalSpending() {
+          return this.spendings.reduce((total, spending) => total + parseFloat(spending.amount), 0);
+        }
+      },
+      methods: {
+        t(key) {
+          return this.translations[this.language][key];
+        },
+        toggleLanguage() {
+          this.language = this.language === 'en' ? 'darija' : 'en';
+        },
+        addOrUpdateSpending() {
+          if (this.editMode) {
+            this.spendings[this.editIndex] = { ...this.newSpending };
+            this.editMode = false;
+            this.editIndex = -1;
+          } else {
+            this.spendings.push({ ...this.newSpending });
+          }
+          this.newSpending.description = '';
+          this.newSpending.amount = 0;
+        },
+        editSpending(index) {
+          this.newSpending = { ...this.spendings[index] };
+          this.editMode = true;
+          this.editIndex = index;
+        },
+        deleteSpending(index) {
+          this.spendings.splice(index, 1);
+          if (this.editMode && this.editIndex === index) {
+            this.editMode = false;
+            this.newSpending.description = '';
+            this.newSpending.amount = 0;
+          }
+        },
+        downloadImage() {
+          const element = document.getElementById('capture-area');
+          html2canvas(element).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'spending-list.png';
+            link.href = canvas.toDataURL();
+            link.click();
+          });
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
